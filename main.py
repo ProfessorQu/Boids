@@ -1,38 +1,43 @@
 import pygame
+
 from boids import Boids
 
 pygame.init()
 
 # Set the canvas and bounds
-world_size = width, height = (500, 500)
+world_size = width, height = (1000, 1000)
 
 # Initiate colors
-bg_color = (0, 100, 200)
+bg_color = pygame.Color(0, 100, 200)
 
-boid_color = (200, 200, 0)
+boid_color = pygame.Color(200, 0, 0)
 boid_size = 5
+num_types = 10
 
-line_color = (0, 0, 0)
+line_color = pygame.Color(0, 0, 0)
+line_length = 1.5
 
-cell_color = (0, 255, 0)
+cell_color = pygame.Color(0, 255, 0)
 
 # Initialize display
 screen = pygame.display.set_mode(world_size)
 clock = pygame.time.Clock()
 
-cell_size = 50
+cell_size = 100
 
+# Create the boids object
 boids = Boids(
-    num_boids=20,
+    num_boids=200,
+    num_types=num_types,
     world_size=world_size,
     max_speed=5,
     perception=2,
-    view_angle=0.5,
+    field_of_view=360,
     avoid_distance=20,
     cell_size=cell_size,
-    alignment_factor=0.5,
+    alignment_factor=0.1,
     cohesion_factor=0.005,
-    seperation_factor=0.5
+    seperation_factor=0.1
 )
 
 
@@ -44,18 +49,23 @@ def draw():
     # Draw boids
     for boid in boids.boids:
         pos = tuple(boid.pos)
-        next_pos = tuple(boid.pos + boid.steer)
+        next_pos = tuple(boid.pos + boid.steer * line_length)
 
-        pygame.draw.circle(screen, boid_color, pos, boid_size)
+        color = pygame.Color(0, 0, 0)
+        scaler = 360 / num_types
+        color.hsla = (boid.type * scaler, 100, 50, 100)
+
+        pygame.draw.circle(screen, color, pos, boid_size)
         pygame.draw.line(screen, line_color, pos, next_pos)
 
-    for y in range(0, width, cell_size):
-        pygame.draw.line(screen, cell_color,
-                         (y, 0), (y, width))
+    # Draw cells
+    # for y in range(0, width, cell_size):
+        # pygame.draw.line(screen, cell_color,
+        # (y, 0), (y, width))
 
-    for x in range(0, width, cell_size):
-        pygame.draw.line(screen, cell_color,
-                         (0, x), (width, x))
+    # for x in range(0, width, cell_size):
+        # pygame.draw.line(screen, cell_color,
+        # (0, x), (width, x))
 
 
 while True:
@@ -63,8 +73,8 @@ while True:
         if event.type == pygame.QUIT:
             break
 
-    draw()
     boids.update_boids()
+    draw()
 
     pygame.display.update()
     clock.tick(30)

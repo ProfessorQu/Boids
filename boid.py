@@ -5,7 +5,7 @@ class Boid(object):
     """The boid object with a position and steerection
     """
 
-    def __init__(self, pos: Vector2, steer: Vector2):
+    def __init__(self, pos: Vector2, steer: Vector2, init_type: int):
         """The initialize method
 
         Args:
@@ -15,6 +15,8 @@ class Boid(object):
         """
         self.pos = pos
         self.steer = steer
+
+        self.type = init_type
 
         self._hash = tuple
 

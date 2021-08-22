@@ -7,33 +7,35 @@ from boid import Boid
 
 
 class Boids(object):
-    def __init__(self, num_boids: int, world_size: int, max_speed: int,
-                 perception: int, view_angle: float,
+    def __init__(self, num_boids: int, num_types: int,
+                 world_size: tuple, max_speed: int,
+                 perception: int, field_of_view: float,
                  avoid_distance: int, cell_size: int,
-                 alignment_factor: float, cohesion_factor: int,
-                 seperation_factor: int):
+                 alignment_factor: float, cohesion_factor: float,
+                 seperation_factor: float):
         """The init method
 
         Args:
             num_boids (int): the amount of boids to create
-            world_size (int): the size of world
+            world_size (tuple): the size of world
             max_speed (int): the speed limit for the boids
             perception (int): how many cells the boids can see
-            view_angle (float): their view angle
+            field_of_view (float): their view angle
             avoid_distance (int): the distance at which they avoid other boids
             cell_size (int): the sizes of the hashgrid cells
             alignment_factor (float): how much does alignment weigh
-            cohesion_factor (int): how much does cohesion weigh
-            seperation_factor (int): how much does seperation weigh
+            cohesion_factor (float): how much does cohesion weigh
+            seperation_factor (float): how much does seperation weigh
         """
 
         self._width, self._height = world_size[0], world_size[1]
-        self._spatial_hash_grid = SpatialHashGrid(cell_size)
+        self._spatial_hash_grid = SpatialHashGrid(
+            cell_size,
+            perception, field_of_view / 2
+        )
         self._boids = []
 
         self._max_speed = max_speed
-        self._perception = perception
-        self._view_angle = view_angle
         self._avoid_distance = avoid_distance
 
         self.alignment_factor = alignment_factor
@@ -51,7 +53,9 @@ class Boids(object):
                 np.random.uniform(-self._max_speed, self._max_speed)
             )
 
-            boid = Boid(pos, steer)
+            boid_type = np.random.randint(0, num_types)
+
+            boid = Boid(pos, steer, boid_type)
 
             self._spatial_hash_grid.insert(boid, pos)
             self._boids.append(boid)
@@ -60,9 +64,7 @@ class Boids(object):
         """Update the boids
         """
         for boid in self._boids:
-            close_boids = self._spatial_hash_grid.get_close_boids(
-                boid, self._perception, self._view_angle
-            )
+            close_boids = self._spatial_hash_grid.get_close_boids(boid)
 
             if close_boids:
                 self._alignment(boid, close_boids)
@@ -111,6 +113,9 @@ class Boids(object):
             close_boids (List[Boid]): the closeby boids
         """
         avg_steer = Vector2(0, 0)
+        close_boids = [
+            other for other in close_boids if other.type == boid.type
+        ]
 
         for other in close_boids:
             avg_steer += other.steer
@@ -127,6 +132,9 @@ class Boids(object):
             close_boids (List[Boid]): the closeby boids
         """
         center = Vector2(0, 0)
+        close_boids = [
+            other for other in close_boids if other.type == boid.type
+        ]
 
         for other in close_boids:
             center += other.pos
@@ -145,10 +153,7 @@ class Boids(object):
         move = Vector2(0, 0)
 
         for other in close_boids:
-            dist = np.sqrt(
-                (boid.pos.x - other.pos.x) ** 2 +
-                (boid.pos.y - other.pos.y) ** 2
-            )
+            dist = self._spatial_hash_grid.distance(boid.pos, other.pos)
 
             if dist < self._avoid_distance:
                 move += boid.pos - other.pos
