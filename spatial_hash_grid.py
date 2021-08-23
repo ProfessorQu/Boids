@@ -1,11 +1,13 @@
 from pygame import Vector2
-from typing import List
+from typing import List, Tuple
 import numpy as np
 
 from boid import Boid
 
 
 class SpatialHashGrid(object):
+    FOV_TO_RADIANS = 180 / np.pi / 2
+
     def __init__(self, cell_size: int,
                  perception: int, field_of_view: float):
         """The init method for the hashgrid
@@ -15,28 +17,13 @@ class SpatialHashGrid(object):
             perception (int): how many cells away can a boid see
             field_of_view (float): what is the boid's field of view
         """
+        # Set the cell size and the grid
         self.cell_size = cell_size
         self.grid = {}
 
+        # Set the perception and calculate the field of view
         self._perception = perception
-        self._field_of_view = field_of_view
-        self._radians_to_degrees = 180 / np.pi
-
-    def distance(self, point1: Vector2, point2: Vector2) -> float:
-        """Calculate distance between two points
-
-        Args:
-            point1 (Vector2): the first point
-            point2 (Vector2): the second point
-
-        Returns:
-            float: the distance from point1 to point2
-        """
-        diff = point1 - point2
-        a = diff.x ** 2
-        b = diff.y ** 2
-
-        return np.sqrt(a + b)
+        self._field_of_view = field_of_view * SpatialHashGrid.FOV_TO_RADIANS
 
     def _hash(self, point: Vector2) -> tuple:
         """Get the hash of a point
@@ -56,8 +43,10 @@ class SpatialHashGrid(object):
             boid (Boid): the target boid
             point (Vector2): the point at which to insert the target
         """
+        # Get the hash of a point
         point_hash = self._hash(point)
 
+        # Add the boid to the point hash
         self.grid.setdefault(point_hash, []).append(boid)
         boid.set_hash(point_hash)
 
@@ -67,11 +56,12 @@ class SpatialHashGrid(object):
         Args:
             boid (Boid): the target boid
         """
+        # Get all boids in the same hash
         boids_in_hash = self.grid.get(boid.hash, [])
 
+        # If the boid is in the boid hash, delete it
         if boid in boids_in_hash:
             boids_in_hash.remove(boid)
-
             boid.set_hash(tuple)
 
     def move(self, boid: Boid, point: Vector2):
@@ -81,12 +71,13 @@ class SpatialHashGrid(object):
             boid (Boid): the target boid
             point (Vector2): the point to move the boid to
         """
+        # Remove and insert the boid
         self.delete(boid)
         self.insert(boid, point)
 
     def get_close_boids(
         self, boid: Boid
-    ) -> List[Boid]:
+    ) -> Tuple[List[Boid], List[Boid]]:
         """Get boids close to a certain boid
 
         Args:
@@ -96,35 +87,54 @@ class SpatialHashGrid(object):
             List[Boid]: the boids that are close to the target
         """
         close_boids = []
+        boids_of_type = []
 
+        # Loop over all cells in the perception range
         for x in range(1 - self._perception, self._perception):
             for y in range(1 - self._perception, self._perception):
-                close_boids.extend(
-                    self.grid.get((boid.hash[0] + x, boid.hash[1] + y), [])
-                )
+                # Get boids in the current cell
+                boids_in_cell = self.grid.get((boid.hash[0] + x,
+                                               boid.hash[1] + y), [])
 
-        boids_in_view = []
-        for other in close_boids:
-            #           c**2 - a**2 - b**2
-            # cos C =   ------------------
-            #                 -2ab
+                for other in boids_in_cell:  # Loop over all boids in cell
+                    #               c² - a² - b²
+                    # C = arccos ( -------------  )
+                    #                   -2ab
 
-            boid_to_other = self.distance(boid.pos, other.pos)
-            boid_to_steer = self.distance(boid.pos, boid.steer)
-            other_to_steer = self.distance(other.pos, boid.steer)
+                    boid_to_other = boid.pos.distance_to(other.pos)  # c
+                    boid_to_dir = boid.pos.distance_to(boid.dir)     # a
+                    other_to_dir = other.pos.distance_to(boid.dir)   # b
 
-            c_min_a_min_b = (
-                other_to_steer ** 2 -
-                boid_to_other ** 2 -
-                boid_to_steer ** 2
-            )
-            neg_2_times_a_times_b = -2 * boid_to_other * boid_to_steer
-            angle = np.arccos(
-                c_min_a_min_b /
-                neg_2_times_a_times_b
-            ) * self._radians_to_degrees
+                    if boid_to_other <= 0 or boid_to_dir <= 0:
+                        # Add other to close boids
+                        close_boids.append(other)
 
-            if (angle <= self._field_of_view or np.isnan(angle)):
-                boids_in_view.append(other)
+                        # Add other if it is the same type
+                        if other.type == boid.type:
+                            boids_of_type.append(other)
 
-        return boids_in_view
+                        continue
+
+                    c_min_a_min_b = (   # c² - a² - b²
+                        other_to_dir ** 2 -
+                        boid_to_other ** 2 -
+                        boid_to_dir ** 2
+                    )
+                    neg_2_times_a_times_b = (  # -2ab
+                        -2 * boid_to_other * boid_to_dir
+                    )
+                    angle = np.arccos(  # C
+                        c_min_a_min_b /
+                        neg_2_times_a_times_b
+                    )
+
+                    # Test if other is in boid's field of view
+                    if (angle <= self._field_of_view or np.isnan(angle)):
+                        # Add other to close boids
+                        close_boids.append(other)
+
+                        # Add other if it is the same type
+                        if other.type == boid.type:
+                            boids_of_type.append(other)
+
+        return close_boids, boids_of_type

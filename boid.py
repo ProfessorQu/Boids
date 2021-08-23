@@ -5,7 +5,7 @@ class Boid(object):
     """The boid object with a position and steerection
     """
 
-    def __init__(self, pos: Vector2, steer: Vector2, init_type: int):
+    def __init__(self, pos: Vector2, dir_: Vector2, type_: int):
         """The initialize method
 
         Args:
@@ -14,9 +14,9 @@ class Boid(object):
             perception (float): how far the boid can see
         """
         self.pos = pos
-        self.steer = steer
+        self.dir = dir_
 
-        self.type = init_type
+        self.type = type_
 
         self._hash = tuple
 
@@ -38,4 +38,4 @@ class Boid(object):
         self._hash = new_hash
 
     def __repr__(self) -> str:
-        return (f"Boid(pos={self.pos}, dir={self.steer}, hash={self._hash})")
+        return (f"Boid(pos={self.pos}, dir={self.dir}, hash={self._hash})")
