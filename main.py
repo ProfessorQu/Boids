@@ -10,7 +10,7 @@ pygame.init()
 world_size = width, height = (1920, 1080)
 
 # Background color
-bg_color = pygame.Color(0, 100, 200)
+bg_color = pygame.Color(0, 26, 51)
 
 # Boid settings/colors
 boid_color = pygame.Color(200, 0, 0)
@@ -22,7 +22,7 @@ line_color = pygame.Color(0, 0, 0)
 line_length = 1.5
 
 # Cell color
-cell_color = pygame.Color(0, 255, 0)
+cell_color = pygame.Color(0, 77, 0)
 
 # Initialize display
 screen = pygame.display.set_mode(world_size)
@@ -40,13 +40,14 @@ flock = Flock(
     perception=2,
     field_of_view=270,
     avoid_distance=20,
-    other_avoid_mult=1,
+    other_avoid_mult=1.5,
+    other_avoid_dist=40,
     alignment_factor=0.1,
     cohesion_factor=0.005,
     seperation_factor=0.1,
-    turn_margin=200,
+    turn_margin=80,
     turn_factor=1.5,
-    in_bounds_by_loop=True
+    loop_bounds=False
 )
 
 
@@ -61,11 +62,7 @@ def draw():
         pos = tuple(boid.pos)
         next_pos = tuple(boid.pos + boid.dir * line_length)
 
-        color = pygame.Color(0, 0, 0)
-        scaler = 360 / num_types
-        color.hsla = (boid.type * scaler, 100, 50, 100)
-
-        pygame.draw.circle(screen, color, pos, boid_size)
+        pygame.draw.circle(screen, boid.color, pos, boid_size)
         pygame.draw.line(screen, line_color, pos, next_pos)
 
     # Draw cells
@@ -95,6 +92,7 @@ def main():
             elif e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
                 running = False
 
+        # Update boids
         flock.update_boids()
 
         # Draw everything

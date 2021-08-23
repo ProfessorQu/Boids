@@ -1,6 +1,7 @@
 from typing import List
 from pygame import Vector2
 import numpy as np
+import pygame
 
 from spatial_hash_grid import SpatialHashGrid
 from boid import Boid
@@ -12,23 +13,30 @@ class Flock(object):
                  max_speed: int,
                  perception: int, field_of_view: float,
                  avoid_distance: int, other_avoid_mult: float,
+                 other_avoid_dist: int,
                  alignment_factor: float, cohesion_factor: float,
                  seperation_factor: float,
                  turn_margin: int, turn_factor: float,
-                 in_bounds_by_loop: bool = True):
+                 loop_bounds: bool = True):
         """The init method
 
         Args:
-            num_boids (int): the amount of boids to create
-            world_size (tuple): the size of world
-            max_speed (int): the speed limit for the boids
-            perception (int): how many cells the boids can see
-            field_of_view (float): their view angle
-            avoid_distance (int): the distance at which they avoid other boids
-            cell_size (int): the sizes of the hashgrid cells
-            alignment_factor (float): how much does alignment weigh
-            cohesion_factor (float): how much does cohesion weigh
-            seperation_factor (float): how much does seperation weigh
+            num_boids (int): the number of boids
+            num_types (int): the number of types of boids
+            world_size (tuple): the size of the world
+            cell_size (int): the size of the hash grid cells
+            max_speed (int): the maximum speed
+            perception (int): how many cells away can a boid see
+            field_of_view (float): how wide is a boid's vision
+            avoid_distance (int): distance to keep between boids
+            other_avoid_mult (float): multiplier of avoiding other types
+            other_avoid_dist (int): distance to keep between other types
+            alignment_factor (float): the factor of alignment
+            cohesion_factor (float): the factor of cohesion
+            seperation_factor (float): the factor of seperation
+            turn_margin (int): margin when the boids need to turn
+            turn_factor (float): how much to turn when in the turn margin
+            loop_bounds (bool, optional): use loop or turn. Defaults to True.
         """
 
         self._width, self._height = world_size[0], world_size[1]
@@ -41,7 +49,9 @@ class Flock(object):
 
         self._max_speed = max_speed
 
+        # Seperation variables
         self.avoid_distance = avoid_distance
+        self.other_avoid_dist = other_avoid_dist
         self.other_avoid_mult = other_avoid_mult
 
         # Factors of all the rules
@@ -49,12 +59,14 @@ class Flock(object):
         self.cohesion_factor = cohesion_factor
         self.seperation_factor = seperation_factor
 
-        if in_bounds_by_loop:
+        if loop_bounds:
             self._keep_in_bounds = self._keep_in_bounds_loop
         else:
             self._keep_in_bounds = self._keep_in_bounds_turn
             self._turn_margin = turn_margin
             self._turn_factor = turn_factor
+
+        scaler = 360 / num_types
 
         # Create the boids
         for _ in range(num_boids):
@@ -73,8 +85,12 @@ class Flock(object):
             # Set a random type
             type_ = np.random.randint(0, num_types)
 
+            # Set a random color
+            color = pygame.Color(0, 0, 0)
+            color.hsla = (type_ * scaler, 100, 50, 100)
+
             # Create the boid
-            boid = Boid(pos, dir_, type_)
+            boid = Boid(pos, dir_, type_, color)
 
             # Add the boid
             self._spatial_hash_grid.insert(boid, pos)
@@ -200,12 +216,15 @@ class Flock(object):
         for other in close_boids:
             dist = boid.pos.distance_to(other.pos)
 
-            other_type_avoid = abs(boid.type - other.type)
-            other_type_avoid = min(other_type_avoid, 1) * \
-                self.other_avoid_mult + 1
+            other_type = abs(boid.type - other.type)
+            if other_type:
+                other_avoid = min(other_type, 1) * \
+                    self.other_avoid_mult + 1
 
-            if dist <= self.avoid_distance * other_type_avoid:
-                avoid += (boid.pos - other.pos) * other_type_avoid
+                if dist <= self.other_avoid_dist:
+                    avoid += (boid.pos - other.pos) * other_avoid
+            elif dist <= self.avoid_distance:
+                avoid += (boid.pos - other.pos)
 
         # Update the boids direction
         boid.dir += avoid * self.seperation_factor

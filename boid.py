@@ -1,11 +1,13 @@
 from pygame import Vector2
+import pygame
 
 
 class Boid(object):
     """The boid object with a position and steerection
     """
 
-    def __init__(self, pos: Vector2, dir_: Vector2, type_: int):
+    def __init__(self, pos: Vector2, dir_: Vector2,
+                 type_: int, color: pygame.color.Color):
         """The initialize method
 
         Args:
@@ -17,6 +19,7 @@ class Boid(object):
         self.dir = dir_
 
         self.type = type_
+        self.color = color
 
         self._hash = tuple
 
