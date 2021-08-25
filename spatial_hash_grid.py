@@ -21,7 +21,7 @@ class SpatialHashGrid(object):
 
         # Set the perception and calculate the field of view
         self._perception = perception
-        self._field_of_view = field_of_view
+        self._field_of_view = field_of_view / 2  # Dividing by 2 for angle
 
     def _hash(self, point: Vector2) -> tuple:
         """Get the hash of a point
@@ -73,7 +73,7 @@ class SpatialHashGrid(object):
         self.delete(boid)
         self.insert(boid, point)
 
-    def get_close_boids(
+    def get_boids(
         self, boid: Boid
     ) -> Tuple[List[Boid], List[Boid]]:
         """Get boids close to a certain boid
@@ -84,7 +84,7 @@ class SpatialHashGrid(object):
         Returns:
             List[Boid]: the boids that are close to the target
         """
-        close_boids = []
+        boids = []
         boids_of_type = []
 
         # Loop over all cells in the perception range
@@ -103,10 +103,10 @@ class SpatialHashGrid(object):
                     # Test if other is in boid's field of view
                     if (angle <= self._field_of_view or np.isnan(angle)):
                         # Add other to close boids
-                        close_boids.append(other)
+                        boids.append(other)
 
                         # Add other if it is the same type
                         if other.type == boid.type:
                             boids_of_type.append(other)
 
-        return close_boids, boids_of_type
+        return boids, boids_of_type

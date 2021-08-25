@@ -2,20 +2,20 @@ import pygame
 
 from flock import Flock
 from profiler import profile
+from input_box import InputBox, show_error_message
 
 pygame.init()
 
 # ---------- VARIABLES ----------
 # Set the canvas and bounds
-world_size = width, height = (1920, 1080)
+world_size = width, height = (1000, 1000)
 
 # Background color
 bg_color = pygame.Color(0, 26, 51)
 
-# Boid settings/colors
-boid_color = pygame.Color(200, 0, 0)
+# Boid settings
 boid_size = 5
-num_types = 5
+num_types = 3
 
 # Line settings/colors
 line_color = pygame.Color(0, 0, 0)
@@ -28,26 +28,35 @@ cell_color = pygame.Color(0, 77, 0)
 screen = pygame.display.set_mode(world_size)
 clock = pygame.time.Clock()
 
-cell_size = 160
+cell_size = 100
+
+input_font = pygame.font.Font(None, 32)
+alignment_input = InputBox(
+    (10, 10, 200, input_font.get_height() + 5),
+    input_font,
+    "1"
+)
 
 # Create the flock
 flock = Flock(
-    num_boids=250,
+    num_boids=25,
     num_types=num_types,
     world_size=world_size,
     cell_size=cell_size,
-    max_speed=5,
+    max_speed=1,
     perception=2,
-    field_of_view=270,
+    field_of_view=45,
     avoid_distance=20,
-    other_avoid_mult=1.5,
+    other_avoid_mult=1.1,
     other_avoid_dist=40,
     alignment_factor=0.1,
     cohesion_factor=0.005,
     seperation_factor=0.1,
-    turn_margin=80,
+    turn_margin=100,
     turn_factor=1.5,
-    loop_bounds=False
+    loop_bounds=True,
+    follow_mouse=0,
+    mouse_follow_types=[]
 )
 
 
@@ -74,6 +83,8 @@ def draw():
         pygame.draw.line(screen, cell_color,
                          (0, x), (width, x))
 
+    alignment_input.draw(screen)
+
 
 # ---------- LOOP ----------
 @profile
@@ -83,7 +94,7 @@ def main():
     running = True
     while running:
         # Let the program run at 30 fps
-        clock.tick(30)
+        # clock.tick(60)
 
         # Check for events
         for e in pygame.event.get():
@@ -91,6 +102,20 @@ def main():
                 running = False
             elif e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
                 running = False
+
+            # ----- WIP -----
+            # alignment = alignment_input.update(e)
+
+            # if alignment is not None:
+                # print(alignment)
+                # try:
+                # float(alignment)
+                # except ValueError:
+                # show_error_message(screen, (100, 100, 800, 800),
+                # (255, 0, 0),
+                # input_font,
+                # "Error: invalid value for alignment",
+                # (0, 0, 0))
 
         # Update boids
         flock.update_boids()

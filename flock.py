@@ -17,7 +17,8 @@ class Flock(object):
                  alignment_factor: float, cohesion_factor: float,
                  seperation_factor: float,
                  turn_margin: int, turn_factor: float,
-                 loop_bounds: bool = True):
+                 loop_bounds: bool = True,
+                 follow_mouse: float = 0, mouse_follow_types: List[int] = []):
         """The init method
 
         Args:
@@ -37,6 +38,8 @@ class Flock(object):
             turn_margin (int): margin when the boids need to turn
             turn_factor (float): how much to turn when in the turn margin
             loop_bounds (bool, optional): use loop or turn. Defaults to True.
+            follow_mouse (float, optional): should boid follow mouse. Defaults to 0.
+            mouse_follow_types (List[int], optional): types that follow mouse. Defaults to [].
         """
 
         self._width, self._height = world_size[0], world_size[1]
@@ -66,7 +69,11 @@ class Flock(object):
             self._turn_margin = turn_margin
             self._turn_factor = turn_factor
 
-        scaler = 360 / num_types
+        self.follow_mouse = follow_mouse
+        self.current_follow_mouse = 0
+        self.mouse_follow_types = mouse_follow_types or list(range(num_boids))
+
+        color_scale = 360 / num_types
 
         # Create the boids
         for _ in range(num_boids):
@@ -87,7 +94,7 @@ class Flock(object):
 
             # Set a random color
             color = pygame.Color(0, 0, 0)
-            color.hsla = (type_ * scaler, 100, 50, 100)
+            color.hsla = (type_ * color_scale, 100, 50, 100)
 
             # Create the boid
             boid = Boid(pos, dir_, type_, color)
@@ -99,11 +106,16 @@ class Flock(object):
     def update_boids(self):
         """Update the boids
         """
+        mouse_pos = pygame.mouse.get_pos()
+
         # Update all the boids
         for boid in self._boids:
             # Get all close boids
-            all_boids = self._spatial_hash_grid.get_close_boids(boid)
+            all_boids = self._spatial_hash_grid.get_boids(boid)
             boids, boids_of_type = all_boids
+
+            if self.follow_mouse > 0 and boid.type in self.mouse_follow_types:
+                boid.dir += (mouse_pos - boid.pos) * self.follow_mouse
 
             # Seperate from ALL boids
             if boids:
@@ -171,7 +183,7 @@ class Flock(object):
         """Align with closeby boids of the same type
 
         Args:
-            boid (Boid): the target boids
+            boid (Boid): the target boid
             boids_of_type (List[Boid]): the closeby boids of the same type
         """
         # Get the average direction of all close boids
@@ -208,7 +220,7 @@ class Flock(object):
 
         Args:
             boid (Boid): the target boid
-            close_boids (List[Boid]): the closeby boids
+            close_boids (List[Boid]): all the closeby boids
         """
         # Get the avoidance to all close boids
         avoid = Vector2(0, 0)
