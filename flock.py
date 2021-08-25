@@ -12,13 +12,12 @@ class Flock(object):
                  world_size: tuple, cell_size: int,
                  max_speed: int,
                  perception: int, field_of_view: float,
-                 avoid_distance: int, other_avoid_mult: float,
+                 avoid_dist: int, other_avoid_mult: float,
                  other_avoid_dist: int,
                  alignment_factor: float, cohesion_factor: float,
                  seperation_factor: float,
                  turn_margin: int, turn_factor: float,
-                 loop_bounds: bool = True,
-                 follow_mouse: float = 0, mouse_follow_types: List[int] = []):
+                 loop_bounds: bool = True):
         """The init method
 
         Args:
@@ -29,7 +28,7 @@ class Flock(object):
             max_speed (int): the maximum speed
             perception (int): how many cells away can a boid see
             field_of_view (float): how wide is a boid's vision
-            avoid_distance (int): distance to keep between boids
+            avoid_dist (int): distance to keep between boids
             other_avoid_mult (float): multiplier of avoiding other types
             other_avoid_dist (int): distance to keep between other types
             alignment_factor (float): the factor of alignment
@@ -38,8 +37,6 @@ class Flock(object):
             turn_margin (int): margin when the boids need to turn
             turn_factor (float): how much to turn when in the turn margin
             loop_bounds (bool, optional): use loop or turn. Defaults to True.
-            follow_mouse (float, optional): should boid follow mouse. Defaults to 0.
-            mouse_follow_types (List[int], optional): types that follow mouse. Defaults to [].
         """
 
         self._width, self._height = world_size[0], world_size[1]
@@ -53,14 +50,14 @@ class Flock(object):
         self._max_speed = max_speed
 
         # Seperation variables
-        self.avoid_distance = avoid_distance
-        self.other_avoid_dist = other_avoid_dist
-        self.other_avoid_mult = other_avoid_mult
+        self._avoid_dist = avoid_dist
+        self._other_avoid_dist = other_avoid_dist
+        self._other_avoid_mult = other_avoid_mult
 
         # Factors of all the rules
-        self.alignment_factor = alignment_factor
-        self.cohesion_factor = cohesion_factor
-        self.seperation_factor = seperation_factor
+        self._alignment_factor = alignment_factor
+        self._cohesion_factor = cohesion_factor
+        self._seperation_factor = seperation_factor
 
         if loop_bounds:
             self._keep_in_bounds = self._keep_in_bounds_loop
@@ -68,10 +65,6 @@ class Flock(object):
             self._keep_in_bounds = self._keep_in_bounds_turn
             self._turn_margin = turn_margin
             self._turn_factor = turn_factor
-
-        self.follow_mouse = follow_mouse
-        self.current_follow_mouse = 0
-        self.mouse_follow_types = mouse_follow_types or list(range(num_boids))
 
         color_scale = 360 / num_types
 
@@ -106,16 +99,11 @@ class Flock(object):
     def update_boids(self):
         """Update the boids
         """
-        mouse_pos = pygame.mouse.get_pos()
-
         # Update all the boids
         for boid in self._boids:
             # Get all close boids
             all_boids = self._spatial_hash_grid.get_boids(boid)
             boids, boids_of_type = all_boids
-
-            if self.follow_mouse > 0 and boid.type in self.mouse_follow_types:
-                boid.dir += (mouse_pos - boid.pos) * self.follow_mouse
 
             # Seperate from ALL boids
             if boids:
@@ -195,7 +183,7 @@ class Flock(object):
         avg_dir /= len(boids_of_type)
 
         # Update the boid's direction
-        boid.dir += (avg_dir - boid.dir) * self.alignment_factor
+        boid.dir += (avg_dir - boid.dir) * self._alignment_factor
 
     def _cohesion(self, boid: Boid, boids_of_type: List[Boid]):
         """Go to the center of mass of closeby boids of the same type
@@ -213,7 +201,7 @@ class Flock(object):
         center_of_mass /= len(boids_of_type)
 
         # Update the boid's direction
-        boid.dir += (center_of_mass - boid.pos) * self.cohesion_factor
+        boid.dir += (center_of_mass - boid.pos) * self._cohesion_factor
 
     def _seperation(self, boid: Boid, close_boids: List[Boid]):
         """Move away from closeby boids to not bundle up
@@ -231,15 +219,39 @@ class Flock(object):
             other_type = abs(boid.type - other.type)
             if other_type:
                 other_avoid = min(other_type, 1) * \
-                    self.other_avoid_mult + 1
+                    self._other_avoid_mult + 1
 
-                if dist <= self.other_avoid_dist:
+                if dist <= self._other_avoid_dist:
                     avoid += (boid.pos - other.pos) * other_avoid
-            elif dist <= self.avoid_distance:
+            elif dist <= self._avoid_dist:
                 avoid += (boid.pos - other.pos)
 
         # Update the boids direction
-        boid.dir += avoid * self.seperation_factor
+        boid.dir += avoid * self._seperation_factor
+
+    @property
+    def alignment(self) -> float:
+        return self._alignment_factor
+
+    @alignment.setter
+    def alignment(self, a):
+        self._alignment_factor = a
+
+    @property
+    def cohesion(self) -> float:
+        return self._cohesion_factor
+
+    @cohesion.setter
+    def cohesion(self, c):
+        self._cohesion_factor = c
+
+    @property
+    def seperation(self) -> float:
+        return self._seperation_factor
+
+    @seperation.setter
+    def seperation(self, s):
+        self._seperation_factor = s
 
     @property
     def boids(self) -> List[Boid]:
