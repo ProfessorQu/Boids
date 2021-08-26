@@ -38,15 +38,13 @@ class Flock(object):
             turn_factor (float): how much to turn when in the turn margin
             loop_bounds (bool, optional): use loop or turn. Defaults to True.
         """
-
-        self._width, self._height = world_size[0], world_size[1]
-        self._spatial_hash_grid = SpatialHashGrid(
-            cell_size,
-            perception,
-            field_of_view
-        )
         self._boids = []
 
+        self._world_size = Vector2(world_size[0], world_size[1])
+        self._spatial_hash_grid = SpatialHashGrid(
+            cell_size,
+            perception, field_of_view
+        )
         self._max_speed = max_speed
 
         # Seperation variables
@@ -66,35 +64,50 @@ class Flock(object):
             self._turn_margin = turn_margin
             self._turn_factor = turn_factor
 
+        self.reset_boids(num_boids, num_types)
+
+    def reset_boids(self, num_boids: int, num_types: int,
+                    size: int, size_deviation: int):
+        # Remove all previous boids
+        for boid in self._boids:
+            self._spatial_hash_grid.delete(boid)
+
+        self._boids = []
         color_scale = 360 / num_types
 
         # Create the boids
         for _ in range(num_boids):
-            # Set a random position
-            pos = Vector2(
-                np.random.uniform(0, self._width),
-                np.random.uniform(0, self._height)
-            )
+            boid = self.create_boid(num_types, color_scale,
+                                    size, size_deviation)
 
-            # Set a random direction
-            dir_ = Vector2(
-                np.random.uniform(-self._max_speed, self._max_speed),
-                np.random.uniform(-self._max_speed, self._max_speed)
-            )
-
-            # Set a random type
-            type_ = np.random.randint(0, num_types)
-
-            # Set a random color
-            color = pygame.Color(0, 0, 0)
-            color.hsla = (type_ * color_scale, 100, 50, 100)
-
-            # Create the boid
-            boid = Boid(pos, dir_, type_, color)
-
-            # Add the boid
-            self._spatial_hash_grid.insert(boid, pos)
+            self._spatial_hash_grid.insert(boid, boid.pos)
             self._boids.append(boid)
+
+    def create_boid(self, num_types: int, color_scale: int,
+                    size: int, size_dev: int):
+        # Set a random position
+        pos = Vector2(
+            np.random.uniform(0, self._world_size.x),
+            np.random.uniform(0, self._world_size.y)
+        )
+
+        # Set a random direction
+        dir_ = Vector2(
+            np.random.uniform(-self._max_speed, self._max_speed),
+            np.random.uniform(-self._max_speed, self._max_speed)
+        )
+
+        # Set a random type
+        type_ = np.random.randint(0, num_types)
+
+        # Set a random color
+        color = pygame.Color(0, 0, 0)
+        color.hsla = (type_ * color_scale, 100, 50, 100)
+
+        size_ = size + np.random.randint(-size_dev, size_dev)
+
+        # Return the boid
+        return Boid(pos, dir_, type_, color, size_)
 
     def update_boids(self):
         """Update the boids
@@ -128,15 +141,15 @@ class Flock(object):
         Args:
             boid (Boid): the target boid
         """
-        if boid.pos.x > self._width:
+        if boid.pos.x > self._world_size.x:
             boid.pos.x = 0
         elif boid.pos.x < 0:
-            boid.pos.x = self._width
+            boid.pos.x = self._world_size.x
 
-        if boid.pos.y > self._height:
+        if boid.pos.y > self._world_size.y:
             boid.pos.y = 0
         elif boid.pos.y < 0:
-            boid.pos.y = self._height
+            boid.pos.y = self._world_size.y
 
     def _keep_in_bounds_turn(self, boid: Boid):
         """Keeps a boid in bounds by turning
@@ -146,12 +159,12 @@ class Flock(object):
         """
         if (boid.pos.x < self._turn_margin):
             boid.dir.x += self._turn_factor
-        if (boid.pos.x > self._width - self._turn_margin):
+        if (boid.pos.x > self._world_size.x - self._turn_margin):
             boid.dir.x -= self._turn_factor
 
         if (boid.pos.y < self._turn_margin):
             boid.dir.y += self._turn_factor
-        if (boid.pos.y > self._height - self._turn_margin):
+        if (boid.pos.y > self._world_size.y - self._turn_margin):
             boid.dir.y -= self._turn_factor
 
     def _limit_speed(self, boid: Boid):
@@ -243,7 +256,7 @@ class Flock(object):
 
     @cohesion.setter
     def cohesion(self, c):
-        self._cohesion_factor = c
+        self._cohesion_factor = c / 500
 
     @property
     def seperation(self) -> float:
@@ -252,6 +265,54 @@ class Flock(object):
     @seperation.setter
     def seperation(self, s):
         self._seperation_factor = s
+
+    @property
+    def max_speed(self) -> float:
+        return self._max_speed
+
+    @max_speed.setter
+    def max_speed(self, ms):
+        self._max_speed = ms
+
+    @property
+    def avoid_dist(self) -> float:
+        return self._avoid_dist
+
+    @avoid_dist.setter
+    def avoid_dist(self, ad):
+        self._avoid_dist = ad
+
+    @property
+    def other_avoid_dist(self) -> float:
+        return self._other_avoid_dist
+
+    @other_avoid_dist.setter
+    def other_avoid_dist(self, oad):
+        self._other_avoid_dist = oad
+
+    @property
+    def other_avoid_mult(self) -> float:
+        return self._other_avoid_mult
+
+    @other_avoid_mult.setter
+    def other_avoid_mult(self, oam):
+        self._other_avoid_mult = oam
+
+    @property
+    def perception(self) -> float:
+        return self._spatial_hash_grid.perception
+
+    @perception.setter
+    def perception(self, p):
+        self._spatial_hash_grid.perception = p
+
+    @property
+    def field_of_view(self) -> float:
+        return self._spatial_hash_grid.field_of_view
+
+    @field_of_view.setter
+    def field_of_view(self, fov):
+        self._spatial_hash_grid.field_of_view = fov
 
     @property
     def boids(self) -> List[Boid]:

@@ -110,3 +110,19 @@ class SpatialHashGrid(object):
                             boids_of_type.append(other)
 
         return boids, boids_of_type
+
+    @property
+    def perception(self) -> int:
+        return self._perception
+
+    @perception.setter
+    def perception(self, p):
+        self._perception = int(p)
+
+    @property
+    def field_of_view(self) -> float:
+        return self._field_of_view
+
+    @field_of_view.setter
+    def field_of_view(self, fov):
+        self._field_of_view = fov
