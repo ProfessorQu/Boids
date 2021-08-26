@@ -1,8 +1,7 @@
 from typing import List, Tuple
 import pygame
 
-from flock import Flock
-from profiler import profile
+from boids import Flock, profile
 from elements import InputBox, Button
 
 # ---------- VARIABLES ----------
