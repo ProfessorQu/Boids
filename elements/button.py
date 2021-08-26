@@ -4,7 +4,7 @@ import pygame
 TXT_COLOR = pygame.Color(100, 100, 100)
 
 
-class Button(object):
+class Button:
     """A button that you can press
     """
 
@@ -57,7 +57,7 @@ class Button(object):
         # Get the color
         color = Button.NORMAL
         if self.button_rect.collidepoint(pygame.mouse.get_pos()):
-            color = Button.NORMAL
+            color = Button.HOVER
 
         # Draw the button
         pygame.draw.rect(screen, color, self.button_rect)

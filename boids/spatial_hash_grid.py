@@ -2,10 +2,10 @@ from pygame import Vector2
 from typing import List, Tuple
 import numpy as np
 
-from boid import Boid
+from boids.boid import Boid
 
 
-class SpatialHashGrid(object):
+class SpatialHashGrid:
     def __init__(self, cell_size: int,
                  perception: int, field_of_view: float):
         """The init method for the hashgrid
@@ -20,10 +20,10 @@ class SpatialHashGrid(object):
         self.grid = {}
 
         # Set the perception and calculate the field of view
-        self._perception = perception
-        self._field_of_view = field_of_view / 2  # Dividing by 2 for angle
+        self.perception = perception
+        self.field_of_view = field_of_view / 2  # Dividing by 2 for angle
 
-    def _hash(self, point: Vector2) -> tuple:
+    def hash(self, point: Vector2) -> tuple:
         """Get the hash of a point
 
         Args:
@@ -42,11 +42,11 @@ class SpatialHashGrid(object):
             point (Vector2): the point at which to insert the target
         """
         # Get the hash of a point
-        point_hash = self._hash(point)
+        point_hash = self.hash(point)
 
         # Add the boid to the point hash
         self.grid.setdefault(point_hash, []).append(boid)
-        boid.set_hash(point_hash)
+        boid.hash = point_hash
 
     def delete(self, boid: Boid):
         """Delete a boid from a cell
@@ -60,7 +60,7 @@ class SpatialHashGrid(object):
         # If the boid is in the boid hash, delete it
         if boid in boids_in_hash:
             boids_in_hash.remove(boid)
-            boid.set_hash(tuple)
+            boid.hash = tuple
 
     def move(self, boid: Boid, point: Vector2):
         """Move a boid from one cell to the other
@@ -88,8 +88,8 @@ class SpatialHashGrid(object):
         boids_of_type = []
 
         # Loop over all cells in the perception range
-        for x in range(1 - self._perception, self._perception):
-            for y in range(1 - self._perception, self._perception):
+        for x in range(1 - self.perception, self.perception):
+            for y in range(1 - self.perception, self.perception):
                 # Get boids in the current cell
                 boids_in_cell = self.grid.get((boid.hash[0] + x,
                                                boid.hash[1] + y), [])
@@ -101,7 +101,7 @@ class SpatialHashGrid(object):
                     angle = abs(boid_to_dir.angle_to(boid_to_other))
 
                     # Test if other is in boid's field of view
-                    if (angle <= self._field_of_view or np.isnan(angle)):
+                    if (angle <= self.field_of_view or np.isnan(angle)):
                         # Add other to close boids
                         boids.append(other)
 
@@ -110,19 +110,3 @@ class SpatialHashGrid(object):
                             boids_of_type.append(other)
 
         return boids, boids_of_type
-
-    @property
-    def perception(self) -> int:
-        return self._perception
-
-    @perception.setter
-    def perception(self, p):
-        self._perception = int(p)
-
-    @property
-    def field_of_view(self) -> float:
-        return self._field_of_view
-
-    @field_of_view.setter
-    def field_of_view(self, fov):
-        self._field_of_view = fov

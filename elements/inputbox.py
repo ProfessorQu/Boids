@@ -4,7 +4,7 @@ import pygame
 TXT_COLOR = pygame.Color(100, 100, 100)
 
 
-class InputBox(object):
+class InputBox:
     """An inputbox where you can input a number
     """
     # Instantiate colors

@@ -1,7 +1,7 @@
 from typing import List, Tuple
 import pygame
 
-from boids import Flock, profile
+from boids import Flock
 from elements import InputBox, Button
 
 # ---------- VARIABLES ----------
@@ -13,7 +13,7 @@ BG_COLOR = pygame.Color(0, 26, 51)
 
 # Boid settings
 BOID_SIZE = 5
-num_types = 3
+num_types = 1
 
 # Line settings/colors
 LINE_COLOR = pygame.Color(0, 0, 0)
@@ -40,7 +40,7 @@ def draw(flock, inputs):
         pos = tuple(boid.pos)
         next_pos = tuple(boid.pos + boid.dir * LINE_LENGTH)
 
-        pygame.draw.circle(SCREEN, boid.color, pos, boid.size)
+        pygame.draw.circle(SCREEN, boid.color, pos, BOID_SIZE)
         pygame.draw.line(SCREEN, LINE_COLOR, pos, next_pos)
 
     # Draw cells
@@ -57,7 +57,6 @@ def draw(flock, inputs):
         input_.draw(SCREEN)
 
 
-@profile
 def setup():
     """The main function
     """
@@ -67,9 +66,9 @@ def setup():
     font_size = 20
 
     input_args = [
-        (InputBox, "Alignment:", 0.1, "alignment"),
-        (InputBox, "Cohesion:", 0.1, "cohesion"),
-        (InputBox, "Seperation", 0.1, "seperation"),
+        (InputBox, "Alignment:", 0.1, "alignment_factor"),
+        (InputBox, "Cohesion:", 0.1, "cohesion_factor"),
+        (InputBox, "Seperation", 0.1, "seperation_factor"),
 
         (InputBox, "Max Speed:", 1, "max_speed"),
 
@@ -102,7 +101,7 @@ def setup():
         seperation_factor=0,
         turn_margin=100,
         turn_factor=1.5,
-        loop_bounds=True,
+        loop_bounds=False,
     )
 
     # Return the inputs and the flock
@@ -116,6 +115,7 @@ def run(inputs: dict, flock: Flock):
         inputs (dict): the inputs to render and use
         flock (Flock): the flock to simulate
     """
+
     running = True
     while running:
         # Let the program run at 30 fps
