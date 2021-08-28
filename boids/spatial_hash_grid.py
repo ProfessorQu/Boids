@@ -1,6 +1,5 @@
 from pygame import Vector2
 from typing import List, Tuple
-import numpy as np
 
 from boids.boid import Boid
 
@@ -95,18 +94,16 @@ class SpatialHashGrid:
                                                boid.hash[1] + y), [])
 
                 for other in boids_in_cell:  # Loop over all boids in cell
-                    boid_to_dir = boid.dir - boid.pos
-                    boid_to_other = other.pos - boid.pos
+                    if other != boid:
+                        angle = abs(boid.dir.angle_to(other.pos - boid.pos))
 
-                    angle = abs(boid_to_dir.angle_to(boid_to_other))
+                        # Test if other is in boid's field of view
+                        if angle <= self.field_of_view:
+                            # Add other to close boids
+                            boids.append(other)
 
-                    # Test if other is in boid's field of view
-                    if (angle <= self.field_of_view or np.isnan(angle)):
-                        # Add other to close boids
-                        boids.append(other)
-
-                        # Add other if it is the same type
-                        if other.type == boid.type:
-                            boids_of_type.append(other)
+                            # Add other if it is the same type
+                            if other.type == boid.type:
+                                boids_of_type.append(other)
 
         return boids, boids_of_type
