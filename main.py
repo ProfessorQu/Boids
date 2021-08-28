@@ -11,7 +11,7 @@ BG_COLOR = pygame.Color(0, 26, 51)
 
 # Boid settings
 BOID_SIZE = 5
-num_types = 3
+num_types = 2
 
 # Line settings/colors
 LINE_COLOR = pygame.Color(0, 0, 0)
@@ -73,7 +73,7 @@ def get_flock():
         seperation_factor=0.05,
         turn_margin=100,
         turn_factor=1.5,
-        loop_bounds=False
+        loop_bounds=True
     )
 
 
