@@ -64,7 +64,7 @@ def get_flock():
         cell_size=cell_size,
         max_speed=15,
         perception=2,
-        field_of_view=360,
+        field_of_view=270,
         avoid_dist=20,
         other_avoid_mult=1.5,
         other_avoid_dist=40,
